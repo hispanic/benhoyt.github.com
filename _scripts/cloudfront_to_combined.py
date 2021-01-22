@@ -23,7 +23,7 @@ REQUIRED_FIELDS = [
     'date', 'time', 'c-ip', 'cs-uri-stem', 'cs(Referer)',
     'cs(User-Agent)', 'cs-uri-query', 'x-forwarded-for',
 ]
-PIXEL_PATH = '/pixel.png'
+PIXEL_PATH = '/log.png'
 
 
 def process_input(finput):
@@ -80,6 +80,9 @@ def process_input(finput):
 
         # Decode "u" (URL) and "r" (referrer) in query string
         path = urllib.parse.unquote(query['u'][0])
+        status_code = urllib.parse.unquote(query['s'][0])
+        protocol_version = urllib.parse.unquote(query.get('p', ['HTTP/1.1'])[0])
+        byte_cnt = urllib.parse.unquote(query.get('b', ['-'])[0])
         referrer = urllib.parse.unquote(query.get('r', ['-'])[0])
         try:
             date = datetime.datetime.strptime(fields['date'], '%Y-%m-%d')
@@ -90,14 +93,18 @@ def process_input(finput):
         ip = fields['c-ip']
         if fields['x-forwarded-for'] != '-':
             ip = fields['x-forwarded-for']
+            # Remove appended IP data - ",\x20127.0.0.1". Not sure what it is.
+            ip = ip.split(',')[0]
 
         # Output in Apache/nginx combined log format
-        print('{ip} - - [{date:%d/%b/%Y}:{time} +0000] {request} 200 - '
+        print('{ip} - - [{date:%d/%b/%Y}:{time} +0000] {request} {status_code} {byte_cnt} '
               '{referrer} {user_agent}'.format(
             ip=ip,
             date=date,
             time=fields['time'],
-            request=quote('GET ' + path + ' HTTP/1.1'),
+            request=quote('GET ' + path + ' ' + protocol_version),
+            status_code=status_code,
+            byte_cnt=byte_cnt,
             referrer=quote(referrer),
             user_agent=quote(user_agent),
         ))
