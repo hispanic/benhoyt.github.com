@@ -23,10 +23,9 @@ REQUIRED_FIELDS = [
     'date', 'time', 'c-ip', 'cs-uri-stem', 'cs(Referer)',
     'cs(User-Agent)', 'cs-uri-query', 'x-forwarded-for',
 ]
-PIXEL_PATH = '/log.png'
 
 
-def process_input(finput):
+def process_input(finput, pixelPath):
     """Process Cloudfront logs in given fileinput."""
     num_files = 0
     num_lines = 0
@@ -72,7 +71,7 @@ def process_input(finput):
             continue
 
         # Ensure it's a "pixel.png" request with "u" query param
-        if fields['cs-uri-stem'] != PIXEL_PATH:
+        if fields['cs-uri-stem'] != pixelPath:
             continue
         query = urllib.parse.parse_qs(fields['cs-uri-query'])
         if 'u' not in query or not query['u'][0].startswith('%2F'):
@@ -146,7 +145,11 @@ if __name__ == '__main__':
                         help='directory of .gz files or list of files')
     parser.add_argument('--days', type=int, default=60,
                         help='number of days to go back (default %(default)s)')
+    parser.add_argument('--pixelPath', type=str, default='/log.png',
+                        help='the value which cs-uri-stem must equal for the record to be processed (default %(default)s)')
     args = parser.parse_args()
+
+    pixelPath = args.pixelPath
 
     files = args.dir_or_files
     if len(files) == 1 and os.path.isdir(files[0]):
@@ -166,4 +169,4 @@ if __name__ == '__main__':
             files.append(os.path.join(dirname, name))
 
     finput = fileinput.input(files=files, openhook=fileinput.hook_compressed)
-    sys.exit(0 if process_input(finput) else 1)
+    sys.exit(0 if process_input(finput, pixelPath) else 1)
