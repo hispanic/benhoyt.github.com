@@ -81,6 +81,9 @@ def process_input(finput, pixelPath):
         path = urllib.parse.unquote(query['u'][0])
         status_code = urllib.parse.unquote(query['s'][0])
         protocol_version = urllib.parse.unquote(query.get('p', ['HTTP/1.1'])[0])
+        # Ensure the protocol is parseable by GoAccess (combined log format compliant?).
+        if protocol_version == 'H2':
+            protocol_version = 'HTTP/2'
         byte_cnt = urllib.parse.unquote(query.get('b', ['-'])[0])
         referrer = urllib.parse.unquote(query.get('r', ['-'])[0])
         try:
